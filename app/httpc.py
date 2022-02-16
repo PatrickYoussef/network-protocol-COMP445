@@ -17,8 +17,8 @@ def run_client(request, URL, verbose, headers_list, file, data_body):
         if data_body is None and file is None:
             print(500, "Post operation needs to include -d or -f. Write --help for more information")
         if data_body is not None:
-            print(data_body)
-            run_request(request_types[1], verbose, headers_list, str(data_body), URL)
+            data = str(data_body).replace("'", '"')
+            run_request(request_types[1], verbose, headers_list, str(data), URL)
         if file is not None:
             try:
                 f = open(file)
@@ -26,7 +26,8 @@ def run_client(request, URL, verbose, headers_list, file, data_body):
                 print("Could not open/read file:", file)
                 sys.exit()
             file_data = json.load(f)
-            run_request(request_types[1], verbose, headers_list, file_data, URL)
+            formatted_data = str(file_data).replace("'", '"')
+            run_request(request_types[1], verbose, headers_list, formatted_data, URL)
 
 
 def run_request(request_type, isVerbose, headers_list, data, URL):
@@ -70,9 +71,8 @@ def build_query(request_type, parsedUrl, headers_list, data):
         for header in headers_list:
             query += (header + "\r\n")
     if request_type == 'post':
-        json_data = str(data).replace("'", '"')
-        query += "Content-Length: " + str(len(json_data))
-        query += ("\r\n\r\n" + json_data)
+        query += "Content-Length: " + str(len(data))
+        query += ("\r\n\r\n" + data)
     query += "\r\n\r\n"
     return query
 
@@ -81,7 +81,7 @@ def build_query(request_type, parsedUrl, headers_list, data):
 header_file_parser = argparse.ArgumentParser(add_help=False)
 group = header_file_parser.add_mutually_exclusive_group()
 group.add_argument('-f', help='file name')
-group.add_argument('-d', help='body request', type=str)
+group.add_argument('-d', help='body request')
 
 # write --help to get all documentation
 parser = argparse.ArgumentParser(prog='httpc', conflict_handler='resolve', parents=[header_file_parser])
