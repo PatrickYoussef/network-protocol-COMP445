@@ -5,9 +5,10 @@ FROM python:3.9.6-slim-bullseye
 WORKDIR /app
 
 COPY requirements.txt requirements.txt
+COPY ./app/* ./app/*
 
 RUN pip install -r requirements.txt
 
 COPY . .
 
-CMD ["python", "-m"]
+ENTRYPOINT ["python", "httpc.py"]
