@@ -4,8 +4,8 @@ FROM python:3.9.6-slim-bullseye
 
 WORKDIR /app
 
-COPY requirements.txt .
-COPY httpc.py .
+COPY requirements.txt requirements.txt
+COPY ./app/* ./app/*
 
 RUN pip install -r requirements.txt
 
