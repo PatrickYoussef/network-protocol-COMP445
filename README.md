@@ -17,3 +17,11 @@ python httpc.py (get|post) [-v] (-h "k:v")* [-d inline-data] [-f file] URL
 -f (file): file containing JSON that will be sent in a POST request
 
 -URL: URL (including path)
+
+# Examples
+
+1- python httpc.py post -v -h "Content-Type:application/json" "Cache-Control: max-age=0" "Connection: close" -f "body_request.json" "http://httpbin.org/post?coure=networking&assignment=1&ID=48343483W8734W439T73W89T738T73W9T"
+
+2- python httpc.py post -v -h "Content-Type:application/json" "Cache-Control: max-age=0" "Connection: close" -d "{\"Assignemnt\": 1, \"Course\": \"Networking\"}" "http://httpbin.org/post"
+
+3- python httpc.py get https://httpbin.org/get -v -h "Content-Type:application/json" "Cache-Control: max-age=0" "Connection: close" 
