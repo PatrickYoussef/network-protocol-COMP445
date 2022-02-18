@@ -4,19 +4,16 @@ This is the 1st lab for our COMP 445 course which requires us to develop a netwo
 # Requirements
 1. Python 3+
 
-# Run echo server
+# Run httpc.py
 
-`python echoserver.py --port 8007`
+python httpc.py (get|post) [-v] (-h "k:v")* [-d inline-data] [-f file] URL
 
-# Run echo client
+-v (verbose): outputs requests status, headers and contents
 
-`python echoclient.py --host localhost --port 8007`
+-h (headers): key-value pairs of HTTP request headers, ex: Content-Type:application/json, Connection:close\
 
-# Run time server
+-d (data): JSON to be sent when doing a POST request
 
-`python timeserver.py --port 8037`
+-f (file): file containing JSON that will be sent in a POST request
 
-# Run time client
-
-`python timelient.py --host localhost --port 8037`
-
+-URL: URL (including path)
