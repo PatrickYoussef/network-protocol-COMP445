@@ -17,8 +17,7 @@ def run_client(request, URL, verbose, headers_list, file, data_body):
         if data_body is None and file is None:
             print(500, "Post operation needs to include -d or -f. Write --help for more information")
         if data_body is not None:
-            data = str(data_body).replace("'", '"')
-            run_request(request_types[1], verbose, headers_list, str(data), URL)
+            run_request(request_types[1], verbose, headers_list, str(data_body), URL)
         if file is not None:
             try:
                 f = open(file)
@@ -26,7 +25,7 @@ def run_client(request, URL, verbose, headers_list, file, data_body):
                 print("Could not open/read file:", file)
                 sys.exit()
             file_data = json.load(f)
-            formatted_data = str(file_data).replace("'", '"')
+            formatted_data = json.dumps(file_data)
             run_request(request_types[1], verbose, headers_list, formatted_data, URL)
 
 
@@ -54,12 +53,6 @@ def split_verbose_response(http_response):
     verbose_output = response_list[0].strip()
     response_output = response_list[1].strip()
     return verbose_output, response_output
-
-
-# def parse_parameters(params):
-#     params_list = urllib.parse.parse_qs(params)
-#     params_dict = {k: v[0] for k, v in params_list.items()}
-#     return params_dict
 
 
 def build_query(request_type, parsedUrl, headers_list, data):
