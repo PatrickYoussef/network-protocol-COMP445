@@ -1,3 +1,4 @@
+import json
 import socket
 import sys
 import threading
@@ -26,10 +27,9 @@ def handle_client(conn, addr, verbose, directory):
             if not data:
                 break
             query = readQuery(data.decode(), directory)
-            print(query)
             conn.sendall(query.encode("utf-8"))
     finally:
-        print("Server at ")
+        print("Connection with client from", addr, "is now closed")
         conn.close()
 
 
@@ -45,10 +45,35 @@ def readQuery(query, directory):
                 query += "\r\n"
             return query
         else:
-            print('get file content')
+            fileName = queryList[0].split(' ')[1]
+            fileContent = readFileContent(fileName, directory, getListOfFiles(directory))
+            print(fileContent)
+            return fileContent
     if request_type == 'POST':
         print(queryList[0].split(' ')[1])
     return request_type
+
+
+def readFileContent(fileName, directory, list_of_files):
+    # real_file = ""
+    # for file in list_of_files:
+    #     shortened_file = os.path.basename(os.path.normpath(file))
+    #     if fileName[1:] == shortened_file:
+    #         real_file = shortened_file
+    #         break
+    if directory == '/':
+        fileName = fileName[1:]
+    file_to_open = directory[1:] + fileName
+    try:
+        f = open(file_to_open, 'r')
+    except OSError:
+        return "HTTP ERROR 404: Could not open/read file: " + file_to_open
+    # if '.json' in fileName:
+    #     file_data = json.load(f)
+    #     formatted_data = json.dumps(file_data)
+    #     return formatted_data
+    file_data = f.read()
+    return file_data
 
 
 def getListOfFiles(directory):
@@ -57,7 +82,6 @@ def getListOfFiles(directory):
     for filename in os.listdir(path):
         f = os.path.join(filename)
         absolute_path = path + f
-        # print(os.path.basename(os.path.normpath(absolute_path)))
         if os.path.isfile(absolute_path) and '.py' not in f:
             files_list.append(absolute_path)
     return files_list
