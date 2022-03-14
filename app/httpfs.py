@@ -47,11 +47,37 @@ def readQuery(query, directory):
         else:
             fileName = queryList[0].split(' ')[1]
             fileContent = readFileContent(fileName, directory, getListOfFiles(directory))
-            print(fileContent)
             return fileContent
     if request_type == 'POST':
-        print(queryList[0].split(' ')[1])
+        fileName = queryList[0].split(' ')[1]
+        if fileName == '/':
+            return "HTTP ERROR 404: You need to append a file name to the request"
+        query_body = get_query_body(queryList)
+        writeFile(fileName, directory, query_body)
+        return query
     return request_type
+
+
+def get_query_body(queryList):
+    counter = 0
+    for line in queryList:
+        if line == '':
+            break
+        counter = counter + 1
+    body_index = counter + 1
+    return queryList[body_index]
+
+
+def writeFile(fileName, directory, query_body):
+    print(query_body)
+    if directory == '/':
+        fileName = fileName[1:]
+    file_to_write = directory[1:] + fileName
+    try:
+        f = open(file_to_write, 'w')
+    except OSError:
+        return "HTTP ERROR 404: Could not open/read file: " + file_to_write
+    f.write(query_body)
 
 
 def readFileContent(fileName, directory, list_of_files):
@@ -68,10 +94,6 @@ def readFileContent(fileName, directory, list_of_files):
         f = open(file_to_open, 'r')
     except OSError:
         return "HTTP ERROR 404: Could not open/read file: " + file_to_open
-    # if '.json' in fileName:
-    #     file_data = json.load(f)
-    #     formatted_data = json.dumps(file_data)
-    #     return formatted_data
     file_data = f.read()
     return file_data
 
