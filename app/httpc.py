@@ -36,12 +36,13 @@ def run_request(request_type, isVerbose, headers_list, data, URL):
     try:
         socket_client.connect(('localhost', 8080))
         query = build_query(request_type, parsedUrl, headers_list, data)
-        socket_client.send(query.encode())
-        http_response = socket_client.recv(4096, socket.MSG_WAITALL)
-        verbose_output, response_output = split_verbose_response(http_response.decode())
-        if isVerbose:
-            print(verbose_output, "\r\n")
-        print(response_output)
+        socket_client.sendall(query.encode("utf-8"))
+        http_response = socket_client.recv(4096)
+        #verbose_output, response_output = split_verbose_response(http_response.decode())
+        #if isVerbose:
+            #print(verbose_output, "\r\n")
+        #print(response_output)
+        print(http_response.decode())
     except:
         print("connection failed")
     finally:
