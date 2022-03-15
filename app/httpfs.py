@@ -1,3 +1,4 @@
+import datetime
 import json
 import socket
 import sys
@@ -11,7 +12,7 @@ def run_server(host, port, verbose, directory):
     try:
         listener.bind((host, port))
         listener.listen(5)
-        print('The server is ready to receive at port', port)
+        print('The server is ready to receive at port', port) if verbose else ''
         while True:
             conn, addr = listener.accept()
             threading.Thread(target=handle_client, args=(conn, addr, verbose, directory)).start()
@@ -20,7 +21,7 @@ def run_server(host, port, verbose, directory):
 
 
 def handle_client(conn, addr, verbose, directory):
-    print('New client from', addr)
+    print('New client from', addr) if verbose else ''
     try:
         while True:
             data = conn.recv(1024)
@@ -29,32 +30,38 @@ def handle_client(conn, addr, verbose, directory):
             query = readQuery(data.decode(), directory)
             conn.sendall(query.encode("utf-8"))
     finally:
-        print("Connection with client from", addr, "is now closed")
+        print("Connection with client from", addr, "is now closed") if verbose else ''
         conn.close()
 
 
 def readQuery(query, directory):
     queryList = query.split("\r\n")
     request_type = queryList[0].split(' ')[0]
+    fileName = queryList[0].split(' ')[1]
+    headers = get_all_content_headers(query)
+    if '.py' in fileName:
+        return 'HTTP Error 400: Access Restrictions\r\nYou cannot read or write this file'
     if request_type == 'GET':
         if queryList[0].split(' ')[1] == '/':
             list_of_files = getListOfFiles(directory)
-            query = "The files in the directory " + directory + " are the following:\r\n"
+            client_query = "The files in the directory " + directory + " are the following:\r\n"
             for file in list_of_files:
-                query += os.path.basename(os.path.normpath(file))
-                query += "\r\n"
-            return query
+                client_query += os.path.basename(os.path.normpath(file))
+                client_query += "\r\n"
+            full_query = format_verbose(headers, 'HTTP/1.0 200 OK\r\n') + "\r\n" + client_query
+            return full_query.strip()
         else:
             fileName = queryList[0].split(' ')[1]
-            fileContent = readFileContent(fileName, directory, getListOfFiles(directory))
+            fileContent = readFileContent(fileName, directory, query)
             return fileContent
     if request_type == 'POST':
         fileName = queryList[0].split(' ')[1]
         if fileName == '/':
-            return "HTTP ERROR 404: You need to append a file name to the request"
+            full_query = format_verbose(headers, "HTTP ERROR 404: You need to append a file name to the request\r\n") + "\r\nHTTP ERROR 404: Please retry"
+            return full_query
         query_body = get_query_body(queryList)
-        writeFile(fileName, directory, query_body)
-        return query
+        res = writeFile(fileName, directory, query_body, query)
+        return res
     return request_type
 
 
@@ -68,34 +75,33 @@ def get_query_body(queryList):
     return queryList[body_index]
 
 
-def writeFile(fileName, directory, query_body):
-    print(query_body)
+def writeFile(fileName, directory, query_body, query):
     if directory == '/':
         fileName = fileName[1:]
     file_to_write = directory[1:] + fileName
+    headers = get_all_content_headers(query)
     try:
         f = open(file_to_write, 'w')
     except OSError:
-        return "HTTP ERROR 404: Could not open/read file: " + file_to_write
+        full_query = format_verbose(headers, "HTTP ERROR 404: Could not write to file: " + file_to_write + "\r\n")  + "\r\nHTTP ERROR 404: Please retry"
+        return full_query
     f.write(query_body)
+    res = format_verbose(headers, "HTTP 200 OK\r\n") + "\r\n" + query_body
+    return res
 
 
-def readFileContent(fileName, directory, list_of_files):
-    # real_file = ""
-    # for file in list_of_files:
-    #     shortened_file = os.path.basename(os.path.normpath(file))
-    #     if fileName[1:] == shortened_file:
-    #         real_file = shortened_file
-    #         break
+def readFileContent(fileName, directory, query):
+    headers = get_all_content_headers(query)
     if directory == '/':
         fileName = fileName[1:]
     file_to_open = directory[1:] + fileName
     try:
         f = open(file_to_open, 'r')
     except OSError:
-        return "HTTP ERROR 404: Could not open/read file: " + file_to_open
+        return format_verbose(headers, "HTTP ERROR 404: Could not read file: " + file_to_open + "\r\n") + "\r\nHTTP ERROR 404: Please retry"
     file_data = f.read()
-    return file_data
+    response = format_verbose(headers, 'HTTP/1.0 200 OK\r\n') + "\r\n" + file_data
+    return response
 
 
 def getListOfFiles(directory):
@@ -107,6 +113,26 @@ def getListOfFiles(directory):
         if os.path.isfile(absolute_path) and '.py' not in f:
             files_list.append(absolute_path)
     return files_list
+
+
+def get_all_content_headers(query):
+    query_list = query.split("\r\n")
+    headers = "Content-Length: " + str(len(query)) + "\r\n"
+    for line in query_list[2:]:
+        headers += line
+        headers += "\r\n"
+        if line == '':
+            break
+    return headers.strip()
+
+
+def format_verbose(headers, status_code):
+    verbose = ""
+    verbose += status_code
+    verbose += datetime.datetime.now().strftime("%c") + "\r\n"
+    verbose += headers
+    verbose += '\r\n'
+    return verbose
 
 
 # Usage python httpfs.py [--port port-number]
