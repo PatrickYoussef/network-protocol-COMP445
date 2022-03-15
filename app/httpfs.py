@@ -27,19 +27,20 @@ def handle_client(conn, addr, verbose, directory):
             data = conn.recv(1024)
             if not data:
                 break
-            query = readQuery(data.decode(), directory)
+            query = readQuery(data.decode(), directory, verbose)
             conn.sendall(query.encode("utf-8"))
     finally:
         print("Connection with client from", addr, "is now closed") if verbose else ''
         conn.close()
 
 
-def readQuery(query, directory):
+def readQuery(query, directory, verbose):
     queryList = query.split("\r\n")
     request_type = queryList[0].split(' ')[0]
     fileName = queryList[0].split(' ')[1]
-    headers = get_all_content_headers(query)
+    headers = get_all_content_headers(query, request_type)
     if '.py' in fileName:
+        print('HTTP Error 400: Access Restrictions. You cannot read or write this file') if verbose else ''
         return format_verbose(headers, 'HTTP Error 400: Access Restrictions. You cannot read or write this file\r\n') + "\r\nPlease try again"
     if request_type == 'GET':
         if queryList[0].split(' ')[1] == '/':
@@ -48,19 +49,21 @@ def readQuery(query, directory):
             for file in list_of_files:
                 client_query += os.path.basename(os.path.normpath(file))
                 client_query += "\r\n"
+            print('HTTP/1.0 200 OK') if verbose else ''
             full_query = format_verbose(headers, 'HTTP/1.0 200 OK\r\n') + "\r\n" + client_query
             return full_query.strip()
         else:
             fileName = queryList[0].split(' ')[1]
-            fileContent = readFileContent(fileName, directory, query)
+            fileContent = readFileContent(fileName, directory, query, verbose)
             return fileContent
     if request_type == 'POST':
         fileName = queryList[0].split(' ')[1]
         if fileName == '/':
+            print('HTTP ERROR 404: You need to append a file name to the request') if verbose else ''
             full_query = format_verbose(headers, "HTTP ERROR 404: You need to append a file name to the request\r\n") + "\r\nHTTP ERROR 404: Please retry"
             return full_query
         query_body = get_query_body(queryList)
-        res = writeFile(fileName, directory, query_body, query)
+        res = writeFile(fileName, directory, query_body, query, verbose)
         return res
     return request_type
 
@@ -75,31 +78,37 @@ def get_query_body(queryList):
     return queryList[body_index]
 
 
-def writeFile(fileName, directory, query_body, query):
+def writeFile(fileName, directory, query_body, query, verbose):
     if directory == '/':
         fileName = fileName[1:]
     file_to_write = directory[1:] + fileName
-    headers = get_all_content_headers(query)
+    if '/' in file_to_write:
+        os.makedirs(os.path.dirname(file_to_write), exist_ok=True)
+    headers = get_all_content_headers(query, 'POST')
     try:
         f = open(file_to_write, 'w')
     except OSError:
+        print("HTTP ERROR 404: Could not write to file: " + file_to_write + "\r\n") if verbose else ''
         full_query = format_verbose(headers, "HTTP ERROR 404: Could not write to file: " + file_to_write + "\r\n")  + "\r\nHTTP ERROR 404: Please retry"
         return full_query
     f.write(query_body)
+    print ('HTTP 200 OK') if verbose else ''
     res = format_verbose(headers, "HTTP 200 OK\r\n") + "\r\n" + query_body
     return res
 
 
-def readFileContent(fileName, directory, query):
-    headers = get_all_content_headers(query)
+def readFileContent(fileName, directory, query, verbose):
+    headers = get_all_content_headers(query, 'GET')
     if directory == '/':
         fileName = fileName[1:]
     file_to_open = directory[1:] + fileName
     try:
         f = open(file_to_open, 'r')
     except OSError:
+        print("HTTP ERROR 404: Could not read file: " + file_to_open + "\r\n") if verbose else ''
         return format_verbose(headers, "HTTP ERROR 404: Could not read file: " + file_to_open + "\r\n") + "\r\nHTTP ERROR 404: Please retry"
     file_data = f.read()
+    print ('HTTP/1.0 200 OK') if verbose else ''
     response = format_verbose(headers, 'HTTP/1.0 200 OK\r\n') + "\r\n" + file_data
     return response
 
@@ -115,9 +124,11 @@ def getListOfFiles(directory):
     return files_list
 
 
-def get_all_content_headers(query):
+def get_all_content_headers(query, request_type):
     query_list = query.split("\r\n")
-    headers = "Content-Length: " + str(len(query)) + "\r\n"
+    headers = ""
+    if request_type != 'POST':
+        headers = "Content-Length: " + str(len(query)) + "\r\n"
     for line in query_list[2:]:
         headers += line
         headers += "\r\n"
