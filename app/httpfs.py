@@ -40,7 +40,7 @@ def readQuery(query, directory):
     fileName = queryList[0].split(' ')[1]
     headers = get_all_content_headers(query)
     if '.py' in fileName:
-        return 'HTTP Error 400: Access Restrictions\r\nYou cannot read or write this file'
+        return format_verbose(headers, 'HTTP Error 400: Access Restrictions. You cannot read or write this file\r\n') + "\r\nPlease try again"
     if request_type == 'GET':
         if queryList[0].split(' ')[1] == '/':
             list_of_files = getListOfFiles(directory)
