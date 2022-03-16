@@ -21,9 +21,9 @@ python httpfs.py [-v] [-p] [-d]
 
   WITH
 
-  python httpc.py GET https://locahost:8080/ -v
-  python httpc.py GET https://locahost:8080/foo -v -h Content-Type:application/json
-  python httpc.py POST https://locahost:8080/bar -v -h Content-Type:application/json
+  - python httpc.py GET https://locahost:8080/ -v
+  - python httpc.py GET https://locahost:8080/foo -v -h Content-Type:application/json
+  - python httpc.py POST https://locahost:8080/bar -v -h Content-Type:application/json
 
 
 # Run httpc.py (Client)
