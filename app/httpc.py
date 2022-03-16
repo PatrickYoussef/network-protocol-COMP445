@@ -5,6 +5,7 @@ import sys
 import urllib.parse
 
 request_types = ['get', 'post']
+SERVER_PORT = 12000
 
 
 def run_client(request, URL, verbose, headers_list, file, data_body):
@@ -33,10 +34,10 @@ def run_request(request_type, isVerbose, headers_list, data, URL):
     parsedUrl = urllib.parse.urlparse(URL)
     socket_client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
-        socket_client.connect((parsedUrl.netloc, 80))
+        socket_client.connect(('localhost', 8080))
         query = build_query(request_type, parsedUrl, headers_list, data)
-        socket_client.send(query.encode())
-        http_response = socket_client.recv(4096, socket.MSG_WAITALL)
+        socket_client.sendall(query.encode("utf-8"))
+        http_response = socket_client.recv(4096)
         verbose_output, response_output = split_verbose_response(http_response.decode())
         if isVerbose:
             print(verbose_output, "\r\n")
