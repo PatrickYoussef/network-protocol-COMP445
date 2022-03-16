@@ -1,10 +1,26 @@
 # network-protocol-COMP445
-This is the 1st lab for our COMP 445 course which requires us to develop a network protocol
+This is the lab assignment for our COMP 445 course which requires us to develop an HTTP server/client network protocol using TCP. The client can be used by itself to send requests to the web by changing the port number connection to 80 and the host to "parsedUrl.netloc". If the server and client are started together, the client is used to send requests to ther server to read and write files in the root directory in the project.
 
 # Requirements
 1. Python 3+
 
-# Run httpc.py
+# Run httpfs.py (Server)
+
+python httpfs.py [-v] [-p] [-d]
+
+-v (verbose): outputs socket connections and requests status
+
+-p (port): Specifies the port number that the server will listen and serve at
+
+-d (directory): Specifies the directory the server will read/write files at.
+
+# Examples
+
+1- python httpfs.py -v -p 8080
+
+2- python httpfs.py -v -p 8080 -d /foo
+
+# Run httpc.py (Client)
 
 python httpc.py (get|post) [-v] (-h "k:v")* [-d inline-data] [-f file] URL
 
