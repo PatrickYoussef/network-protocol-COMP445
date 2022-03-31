@@ -33,8 +33,9 @@ def run_client(request, URL, verbose, headers_list, file, data_body):
 def run_request(request_type, isVerbose, headers_list, data, URL):
     parsedUrl = urllib.parse.urlparse(URL)
     socket_client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    port = parsedUrl.netloc.split(":")[1]
     try:
-        socket_client.connect(('localhost', 8080))
+        socket_client.connect(('localhost', int(port)))
         query = build_query(request_type, parsedUrl, headers_list, data)
         socket_client.sendall(query.encode("utf-8"))
         http_response = socket_client.recv(4096)
