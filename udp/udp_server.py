@@ -11,6 +11,7 @@ def run_server(host, port, verbose, directory):
     conn = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
         conn.bind((host, port))
+        three_way_handshake(conn)
         print('server is listening at', port)
         while True:
             data, sender = conn.recvfrom(1024)
@@ -36,6 +37,23 @@ def handle_client(conn, data, sender, verbose, directory):
                            payload=query.encode("utf-8"))
         conn.sendto(p_to_send.to_bytes(), sender)
 
+    except Exception as e:
+        print("Error: ", e)
+
+
+def three_way_handshake(conn):
+    print("Udp Server waiting for 3-way handshake with client")
+    try:
+        data, sender = conn.recvfrom(1024)
+        p = Packet.from_bytes(data)
+        print("Router: ", sender)
+        print("Packet: ", p)
+        p_to_send = Packet(packet_type=0,
+                           seq_num=0,
+                           peer_ip_addr=p.peer_ip_addr,
+                           peer_port=p.peer_port,
+                           payload="".encode("utf-8"))
+        conn.sendto(p_to_send.to_bytes(), sender)
     except Exception as e:
         print("Error: ", e)
 

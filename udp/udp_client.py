@@ -38,6 +38,7 @@ def run_request(router_addr, router_port, server_addr, server_port, request_type
     conn = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     timeout = 5
     try:
+        three_way_handshake(peer_ip, server_port, router_addr, router_port, conn)
         msg = build_query(request_type, parsedUrl, headers_list, data)
         p = Packet(packet_type=0,
                    seq_num=1,
@@ -65,6 +66,22 @@ def run_request(router_addr, router_port, server_addr, server_port, request_type
     finally:
         conn.close()
         print("connection closed.")
+
+
+def three_way_handshake(peer_ip, server_port, router_addr, router_port, conn):
+    p = Packet(packet_type=0,
+               seq_num=0,
+               peer_ip_addr=peer_ip,
+               peer_port=server_port,
+               payload="".encode("utf-8"))
+    conn.sendto(p.to_bytes(), (router_addr, router_port))
+    print('Three-way handshake: Sending from client')
+    conn.settimeout(3)
+    response, sender = conn.recvfrom(1024)
+    p = Packet.from_bytes(response)
+    print('Router: ', sender)
+    print('Packet: ', p)
+    print("Ready to send to server !")
 
 
 def split_verbose_response(http_response):
