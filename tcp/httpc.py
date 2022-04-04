@@ -5,7 +5,6 @@ import sys
 import urllib.parse
 
 request_types = ['get', 'post']
-SERVER_PORT = 12000
 
 
 def run_client(request, URL, verbose, headers_list, file, data_body):
