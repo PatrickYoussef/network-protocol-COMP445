@@ -11,9 +11,9 @@ def run_server(host, port, verbose, directory):
     conn = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
         conn.bind((host, port))
-        three_way_handshake(conn)
-        print('server is listening at', port)
         while True:
+            three_way_handshake(conn)
+            print('server is listening at', port)
             data, sender = conn.recvfrom(1024)
             handle_client(conn, data, sender, verbose, directory)
     finally:
