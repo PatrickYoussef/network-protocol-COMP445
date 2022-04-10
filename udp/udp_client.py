@@ -4,6 +4,7 @@ import socket
 import sys
 import json
 import urllib.parse
+from thread import myThread
 
 from packet import Packet
 
@@ -36,59 +37,92 @@ def run_request(router_addr, router_port, server_addr, server_port, request_type
     peer_ip = ipaddress.ip_address(socket.gethostbyname(server_addr))
     parsedUrl = urllib.parse.urlparse(URL)
     conn = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    timeout = 5
+    conn.settimeout(5)
     try:
         three_way_handshake(peer_ip, server_port, router_addr, router_port, conn)
         msg = build_query(request_type, parsedUrl, headers_list, data)
-        p = Packet(packet_type=0,
-                   seq_num=1,
-                   peer_ip_addr=peer_ip,
-                   peer_port=server_port,
-                   payload=msg.encode("utf-8"))
-        conn.sendto(p.to_bytes(), (router_addr, router_port))
-        print('Send "{}" to router'.format(msg))
-
-        # Try to receive a response within timeout
-        conn.settimeout(timeout)
-        print('Waiting for a response')
-        response, sender = conn.recvfrom(1024)
-        p = Packet.from_bytes(response)
-        verbose_output, response_output = split_verbose_response(p.payload.decode("utf-8"))
-        print('Router: ', sender)
-        print('Packet: ', p)
-        print('Payload: ')
-        if isVerbose:
-            print(verbose_output, "\r\n")
-        print(response_output)
+        objs = [myThread(i, "Thread", i, msg, router_addr, router_port, server_addr, server_port, conn, isVerbose) for i
+                in range(10)]
+        for obj in objs:
+            obj.start()
+        for obj in objs:
+            obj.join()
+        # p = Packet(packet_type=0,
+        #            seq_num=1,
+        #            peer_ip_addr=peer_ip,
+        #            peer_port=server_port,
+        #            payload=msg.encode("utf-8"))
+        # conn.sendto(p.to_bytes(), (router_addr, router_port))
+        # print("Sending packet to Router. Sequence Number = ", p.seq_num)
+        #
+        # # Try to receive a response within timeout
+        # conn.settimeout(timeout)
+        # print('Waiting for a response')
+        # response, sender = conn.recvfrom(1024)
+        # p = Packet.from_bytes(response)
+        # verbose_output, response_output = split_verbose_response(p.payload.decode("utf-8"))
+        # print("Response received, the packet type is ", p.packet_type)
+        # print('Router: ', sender)
+        # print('Packet: ', p)
+        # print('Payload: ')
+        # if isVerbose:
+        #     print(verbose_output, "\r\n")
+        # print(response_output)
 
     except socket.timeout:
-        print('No response after {}s'.format(timeout))
+        print('No response after {}s'.format(5))
     finally:
         conn.close()
         print("connection closed.")
 
 
 def three_way_handshake(peer_ip, server_port, router_addr, router_port, conn):
-    p = Packet(packet_type=0,
-               seq_num=0,
-               peer_ip_addr=peer_ip,
-               peer_port=server_port,
-               payload="".encode("utf-8"))
-    conn.sendto(p.to_bytes(), (router_addr, router_port))
-    print('Three-way handshake: Sending from client')
-    conn.settimeout(3)
-    response, sender = conn.recvfrom(1024)
-    p = Packet.from_bytes(response)
-    print('Router: ', sender)
-    print('Packet: ', p)
-    print("Ready to send to server !")
+    try:
+        p = Packet(packet_type=1,
+                   seq_num=1,
+                   peer_ip_addr=peer_ip,
+                   peer_port=server_port,
+                   payload="".encode("utf-8"))
+        conn.sendto(p.to_bytes(), (router_addr, router_port))
+        print('----------Three-way handshake: Sending from client----------')
+        print("Sending SYN - (PacketType = 1)")
+        conn.settimeout(5)
+        print('Waiting For A Response - Should be an SYN-ACK (PacketType = 2)')
+        response, sender = conn.recvfrom(1024)
+        p = Packet.from_bytes(response)
+        print("Response Recieved. PacketType =  ", p.packet_type)
+        if p.packet_type == 2:
+            print("Packet Type is a SynACK")
+            send_ack(peer_ip, server_port, router_addr, router_port, conn)
+        else:
+            print("Three-way handshake failed ! Did not receive a SYN-ACK")
+            sys.exit()
+    except socket.timeout:
+        print("No response after 5 seconds")
 
 
-def split_verbose_response(http_response):
-    response_list = http_response.split("\r\n\r\n")
-    verbose_output = response_list[0].strip()
-    response_output = response_list[1].strip()
-    return verbose_output, response_output
+def send_ack(peer_ip, server_port, router_addr, router_port, conn):
+    try:
+        p = Packet(packet_type=3,
+                   seq_num=1,
+                   peer_ip_addr=peer_ip,
+                   peer_port=server_port,
+                   payload="".encode("utf-8"))
+        print("Sending ACK")
+        conn.sendto(p.to_bytes(), (router_addr, router_port))
+
+        conn.settimeout(5)
+        print("Waiting for response (Should be ACK)")
+        response, sender = conn.recvfrom(1024)
+        p = Packet.from_bytes(response)
+        print("Response Recieved. PacketType =  ", p.packet_type)
+        if p.packet_type == 3:
+            print("Packet Type is a ACK, Ready to send to server !")
+        else:
+            print("Three-way handshake failed ! Did not receive a SYN-ACK")
+            sys.exit()
+    except socket.timeout:
+        print("No response after 5 seconds.")
 
 
 def build_query(request_type, parsedUrl, headers_list, data):
