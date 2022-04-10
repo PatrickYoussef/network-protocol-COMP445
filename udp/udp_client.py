@@ -99,6 +99,7 @@ def three_way_handshake(peer_ip, server_port, router_addr, router_port, conn):
             sys.exit()
     except socket.timeout:
         print("No response after 5 seconds")
+        sys.exit()
 
 
 def send_ack(peer_ip, server_port, router_addr, router_port, conn):
@@ -123,6 +124,7 @@ def send_ack(peer_ip, server_port, router_addr, router_port, conn):
             sys.exit()
     except socket.timeout:
         print("No response after 5 seconds.")
+        sys.exit()
 
 
 def build_query(request_type, parsedUrl, headers_list, data):
