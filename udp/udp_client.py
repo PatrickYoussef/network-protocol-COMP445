@@ -47,27 +47,6 @@ def run_request(router_addr, router_port, server_addr, server_port, request_type
             obj.start()
         for obj in objs:
             obj.join()
-        # p = Packet(packet_type=0,
-        #            seq_num=1,
-        #            peer_ip_addr=peer_ip,
-        #            peer_port=server_port,
-        #            payload=msg.encode("utf-8"))
-        # conn.sendto(p.to_bytes(), (router_addr, router_port))
-        # print("Sending packet to Router. Sequence Number = ", p.seq_num)
-        #
-        # # Try to receive a response within timeout
-        # conn.settimeout(timeout)
-        # print('Waiting for a response')
-        # response, sender = conn.recvfrom(1024)
-        # p = Packet.from_bytes(response)
-        # verbose_output, response_output = split_verbose_response(p.payload.decode("utf-8"))
-        # print("Response received, the packet type is ", p.packet_type)
-        # print('Router: ', sender)
-        # print('Packet: ', p)
-        # print('Payload: ')
-        # if isVerbose:
-        #     print(verbose_output, "\r\n")
-        # print(response_output)
 
     except socket.timeout:
         print('No response after {}s'.format(5))
