@@ -11,9 +11,8 @@ def run_server(host, port, verbose, directory):
     conn = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
         conn.bind((host, port))
-        three_way_handshake(conn)
-        print('server is listening at', port)
         while True:
+            print('server is listening at', port)
             data, sender = conn.recvfrom(1024)
             handle_client(conn, data, sender, verbose, directory)
     finally:
@@ -23,19 +22,34 @@ def run_server(host, port, verbose, directory):
 def handle_client(conn, data, sender, verbose, directory):
     try:
         p = Packet.from_bytes(data)
+        response = p.payload.decode("utf-8")
+
         print("Router: ", sender)
         print("Packet: ", p)
-        print("Payload: ", p.payload.decode("utf-8"))
-        query = readQuery(p.payload.decode("utf-8"), directory, verbose)
-        # How to send a reply.
-        # The peer address of the packet p is the address of the client already.
-        # We will send the same payload of p. Thus we can re-use either `data` or `p`.
-        p_to_send = Packet(packet_type=0,
-                           seq_num=1,
-                           peer_ip_addr=p.peer_ip_addr,
-                           peer_port=p.peer_port,
-                           payload=query.encode("utf-8"))
-        conn.sendto(p_to_send.to_bytes(), sender)
+        if p.packet_type == 0:
+            print("The packet type received is, " + str(p.packet_type))
+            print("Payload: ", response)
+
+            query = readQuery(response, directory, verbose)
+
+            print("Server to send the following response:\r\n", query)
+            p.payload = query.encode("utf-8")
+            conn.sendto(p.to_bytes(), sender)
+
+        if p.packet_type == 1:
+            print("Packet type: ", str(p.packet_type), "(SYN)")
+
+            p.packet_type = 2
+            p.payload = "SYN received, here is SYN_ACK".encode("utf-8")
+            print("SYN received, I will send SYN_ACK")
+            conn.sendto(p.to_bytes(), sender)
+
+        if p.packet_type == 3:
+            print("Packet type: ", str(p.packet_type), "(ACK)")
+            p.packet_type == 3
+            p.payload = "ACK received, I will send ACK".encode("utf-8")
+            print("ACK received, I will send ACK")
+            conn.sendto(p.to_bytes(), sender)
 
     except Exception as e:
         print("Error: ", e)
@@ -48,7 +62,7 @@ def three_way_handshake(conn):
         p = Packet.from_bytes(data)
         print("Router: ", sender)
         print("Packet: ", p)
-        p_to_send = Packet(packet_type=0,
+        p_to_send = Packet(packet_type=1,
                            seq_num=0,
                            peer_ip_addr=p.peer_ip_addr,
                            peer_port=p.peer_port,
